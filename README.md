@@ -1,3 +1,3 @@
-# aind-capsule-template
+# playing around heuristics
 
-Basic structure of a capsule to be customized as needed.
+Small jupyter notebooks to explore strategies and outcomes in the odor-based foraging task.
