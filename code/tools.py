@@ -15,13 +15,13 @@ def gen_bern(probability):
     if probability < 0 or probability > 1:
         raise ValueError("Probability must be between 0 and 1.")
     
-    return random.randint(0, 1) if random.random() < probability else 0
+    return 1 if random.random() < p else 0
 
 # Depletion functions for each patch
 def depletion_func(a, b, c, d, t):
     return a * (b ** (-c*t)+d)
     
-def calc_total_reward_rate(patch_list, travel_time, max_time, reward_value, a, b, c, d):
+def calc_total_reward_rate(patch_list, travel_time, max_time, reward_value, a, b, c, d, prob = False):
     """
     Calculate the total reward rate for a discrete-time foraging system.
 
@@ -30,6 +30,7 @@ def calc_total_reward_rate(patch_list, travel_time, max_time, reward_value, a, b
         travel_time (int): Time required to travel between patches.
         max_time (list): Maximum time to forage in a patch.
         reward_value (array): value for each patch
+        prob (boolean): whether rewards are delivered probabilistically
 
     Returns:
         float: Total reward rate for the entire environment.
@@ -43,7 +44,10 @@ def calc_total_reward_rate(patch_list, travel_time, max_time, reward_value, a, b
 
         for t in range(patch_time):
             prob_reward = depletion_func(a[patch_id],b[patch_id],c[patch_id],d[patch_id],t)
-            instantaneous_rate =  prob_reward * reward_value[patch_id] # probabilistic version: gen_bern(prob_reward) * reward_value
+            if prob:
+                instantaneous_rate =  gen_bern(prob_reward) * reward_value[patch_id]
+            else:
+                instantaneous_rate =  prob_reward * reward_value[patch_id]
             patch_reward += instantaneous_rate
 
         total_reward += patch_reward
