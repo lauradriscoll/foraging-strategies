@@ -2,6 +2,7 @@ import numpy as np
 import scipy
 import random
 
+
 def gen_bern(probability):
     """
     Generate a random value of 1 or 0 based on the given probability.
@@ -26,7 +27,7 @@ def calc_total_reward_rate(patch_list, travel_time, max_time, reward_value, a, b
     Calculate the total reward rate for a discrete-time foraging system.
 
     Args:
-        num_patches (int): Number of patches in the environment.
+        patch_list (int): List of patch types.
         travel_time (int): Time required to travel between patches.
         max_time (list): Maximum time to forage in a patch.
         reward_value (array): value for each patch
@@ -55,6 +56,99 @@ def calc_total_reward_rate(patch_list, travel_time, max_time, reward_value, a, b
 
     total_reward_rate = total_reward / total_time
     return total_reward_rate
+
+def run_simulation(forager, strategy, patch_list, **strategy_params):
+    data = []
+    total_time = 0
+    total_reward = 0
+    patch_entry_time = 0
+    
+    for patch_id in patch_list:
+        t_in_patch = 0
+        patch_reward = 0 #value
+        rewards_in_patch = 0 #instances
+        failures_in_patch = 0 #instances
+        
+        while True:
+            prob_reward = forager.depletion_func(patch_id, t_in_patch)
+            if forager.prob:
+                reward = forager.gen_bern(prob_reward) * forager.reward_value[patch_id]
+            else:
+                reward = prob_reward * forager.reward_value[patch_id]
+            
+            patch_reward += reward
+            total_time += 1
+            t_in_patch += 1
+            
+            if reward > 0:
+                rewards_in_patch += 1
+            else:
+                failures_in_patch += 1
+            
+            data.append({
+                'time': total_time,
+                'patch_id': patch_id,
+                'time_in_patch': t_in_patch,
+                'reward': reward,
+                'cumulative_patch_reward': patch_reward,
+                'prob_reward': prob_reward,
+                'rewards_in_patch': rewards_in_patch,
+                'failures_in_patch': failures_in_patch,
+                'patch_entry_time': patch_entry_time
+            })
+
+
+            # print(strategy_params)
+            
+            # Check exit condition based on strategy
+            if strategy == 'target_stops':
+                if t_in_patch >= strategy_params['target_stops'][patch_id]:
+                    break
+            if strategy == 'mvt_rate':
+                current_rate = patch_reward / (t_in_patch+1 + forager.travel_time) #adding +1 for future patch threshold
+                if current_rate < strategy_params['target_reward_rate']:     
+                    break
+            elif strategy == 'fixed_rewards':
+                if rewards_in_patch >= strategy_params['target_rewards']:
+                    break
+            elif strategy == 'fixed_failures':
+                if failures_in_patch > strategy_params['max_failures']:
+                    break
+        
+        # Add travel time
+        total_time += forager.travel_time
+        data.append({
+            'time': total_time,
+            'patch_id': -1,  # -1 indicates traveling
+            'time_in_patch': forager.travel_time,
+            'reward': 0,
+            'cumulative_patch_reward': 0,
+            'prob_reward': 0,
+            'rewards_in_patch': 0,
+            'failures_in_patch': 0,
+            'patch_entry_time': None
+        })
+        
+        patch_entry_time = total_time
+        total_reward += patch_reward
+
+    return pd.DataFrame(data), total_reward/total_time
+
+def calculate_optimal_stops(patch_list, travel_time, reward_value, a, b, c, d, max_stops=20):
+    grid = np.zeros((max_stops, max_stops))
+    for x in range(max_stops):
+        for y in range(max_stops):
+            total_reward_rate = calc_total_reward_rate(patch_list, travel_time, [x, y], reward_value, a, b, c, d)
+            grid[x, y] = total_reward_rate
+
+    best_time = np.unravel_index(grid.argmax(), grid.shape)
+    max_reward_rate = grid[best_time]
+
+    return {
+        'optimal_stops': best_time,
+        'max_reward_rate': max_reward_rate,
+        'reward_rate_grid': grid
+    }
 
 def moving_window_avg(data, window_size):
     """
