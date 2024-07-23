@@ -1,5 +1,0 @@
-time,patch_id,time_in_patch,reward,cumulative_patch_reward,prob_reward,rewards_in_patch,failures_in_patch,patch_entry_time
-1,0,1,5,5,0.9,1,0,0.0
-2,-1,0,0,0,0.0,0,0,
-3,1,1,5,5,0.4,1,0,3.0
-4,-1,0,0,0,0.0,0,0,
