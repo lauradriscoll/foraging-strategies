@@ -127,7 +127,7 @@ class PatchForager:
                     if current_rate <= strategy_params['target_reward_rate']:     
                         break
                 elif strategy == 'fixed_rewards':
-                    if rewards_in_patch >= strategy_params['target_rewards']:
+                    if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
                 elif strategy == 'fixed_consec_failures':
                     if consec_failures >= strategy_params['consec_failures']:
