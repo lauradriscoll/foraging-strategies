@@ -147,6 +147,7 @@ class PatchForager:
                 'prob_reward': 0,
                 'rewards_in_patch': 0,
                 'failures_in_patch': 0,
+                'consecutive_failures': 0,
                 'patch_entry_time': None
             })
             
