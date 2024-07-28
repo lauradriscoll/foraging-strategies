@@ -62,7 +62,7 @@ class PatchForager:
         for x in range(max_stops):
             for y in range(max_stops):
                 
-                _, total_reward_rate = self.run_simulation('target_stops', patch_list, target_stops = [x,y])
+                _, total_reward_rate = self.run_simulation('stops', patch_list, target_stops = [x,y])
                 grid[x, y] = total_reward_rate
     
         best_time = np.unravel_index(grid.argmax(), grid.shape)
@@ -118,21 +118,21 @@ class PatchForager:
                 })
     
                 # Check exit condition based on strategy
-                if strategy == 'target_stops':
+                if strategy == 'stops':
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
-                if strategy == 'mvt_rate':
+                if strategy == 'rate':
                     current_rate = patch_reward / (t_in_patch)
                     # print(current_rate)
                     if current_rate <= strategy_params['target_reward_rate']:     
                         break
-                elif strategy == 'fixed_rewards':
+                elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
-                elif strategy == 'fixed_consec_failures':
+                elif strategy == 'consec_failures':
                     if consec_failures >= strategy_params['consec_failures']:
                         break
-                elif strategy == 'fixed_failures':
+                elif strategy == 'failures':
                     if failures_in_patch > strategy_params['max_failures']:
                         break
             
@@ -164,19 +164,30 @@ class PatchForager:
         time_steps = np.arange(max_stops)
         
         # Plot the depletion rate over time
-        plt.figure(figsize=(3, 3))
-        
+        plt.figure(figsize=(2, 2))
+        ax = plt.subplot(111)
+
+        # Generate a color map with unique colors for each patch
+        color_map = plt.get_cmap('tab20')  # You can choose a different colormap if needed
+        colors = color_map(np.linspace(0, 1, len(patch_list)))
+
         for patch_id in patch_list: 
+
+            # Get the color for this patch
+            color = colors[patch_id]
             
             # Compute the depletion rate for each time step
             p_R = [self.depletion_func(patch_id,t) for t in time_steps]
         
-            plt.plot(time_steps+1, p_R,label = str(p_R[best_time[patch_id]-1]))
-            plt.plot(best_time[patch_id], p_R[best_time[patch_id]-1],'ok')
+            plt.plot(time_steps+1, p_R,color=color)#label = str(p_R[best_time[patch_id]-1]), 
+            # plt.plot(best_time[patch_id], p_R[best_time[patch_id]-1],'o', color=color,
+            #  label=f'Patch {patch_id}: {best_time[patch_id]} rewards')
         
         plt.xlabel('# Rewards')
-        plt.ylabel('P(R)')
-        plt.legend()
+        plt.ylabel('Probability of Reward')
+        plt.legend(loc='center right', bbox_to_anchor=(1, 1.15))
+        ax.spines[['right', 'top']].set_visible(False)
+        plt.savefig(f'figs/mvt_curves'+str(self.travel_time)+'.png', bbox_inches='tight', dpi=300)
         plt.show()
 
 def moving_window_avg(data, window_size):
