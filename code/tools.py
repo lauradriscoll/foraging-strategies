@@ -3,19 +3,37 @@ import scipy
 import random
 import pandas as pd
 import matplotlib.pyplot as plt
+from itertools import product
 
 class PatchForager:
-    def __init__(self, travel_time, reward_value, a, b, c, d, prob=False):
+    def __init__(self, travel_time, reward_value, a, b, c, d, prob=False, depl_fxn = 'exp'):
         self.travel_time = travel_time #travel_time (int): Time required to travel between patches.
         self.reward_value = reward_value #reward_value (array): value for each patch
-        self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
+        self.depl_fxn = depl_fxn
+        if self.depl_fxn=='exp':
+            self.a = a
+            self.b = b
+            self.c = c
+            self.d = d
+        elif self.depl_fxn=='fixed':
+            self.a = a
+            self.b = b
+        else:
+            raise('depl_fxn not defined')
         self.prob = prob #prob (boolean): whether rewards are delivered probabilistically
 
     def depletion_func(self, patch_id, t):
-        return self.a[patch_id] * (self.b[patch_id] ** (-self.c[patch_id]*t)+self.d[patch_id])
+        
+        if self.depl_fxn == 'exp': 
+            rate = self.a[patch_id] * (self.b[patch_id] ** (-self.c[patch_id]*t)+self.d[patch_id])
+            
+        elif self.depl_fxn == 'fixed':
+            if t >= self.b:
+                rate = 0
+            else:
+                rate = self.a[patch_id,t]
+                
+        return rate
 
     def gen_bern(self, p):
         return 1 if random.random() < p else 0
@@ -40,7 +58,7 @@ class PatchForager:
             patch_time = max_time[patch_id]
     
             for t in range(patch_time):
-                prob_reward = self.depletion_func(patch_id, patch_reward)
+                prob_reward = self.depletion_func(patch_id, t)
                 
                 if self.prob:
                     instantaneous_rate =  self.gen_bern(prob_reward) * self.reward_value[patch_id]
@@ -54,22 +72,33 @@ class PatchForager:
         total_reward_rate = total_reward / total_time
         return total_reward_rate
 
-
     def calculate_optimal_stops(self, patch_list, max_stops=20):
+        # Get the number of unique patches
+        num_patches = len(set(patch_list))
         
-        grid = np.zeros((max_stops, max_stops))
+        # Create a list of all possible combinations of stops
+        stop_combinations = list(product(range(max_stops), repeat=num_patches))
         
-        for x in range(max_stops):
-            for y in range(max_stops):
-                
-                _, total_reward_rate = self.run_simulation('stops', patch_list, target_stops = [x,y])
-                grid[x, y] = total_reward_rate
-    
-        best_time = np.unravel_index(grid.argmax(), grid.shape)
-        max_reward_rate = grid[best_time]
-    
+        # Initialize the results dictionary
+        results = {combo: 0 for combo in stop_combinations}
+        
+        # Calculate reward rate for each combination
+        for combo in stop_combinations:
+            _, total_reward_rate = self.run_simulation('stops', patch_list, target_stops=list(combo))
+            results[combo] = total_reward_rate
+        
+        # Find the best combination
+        best_combo = max(results, key=results.get)
+        max_reward_rate = results[best_combo]
+        
+        # Create a multi-dimensional grid for visualization
+        grid_shape = (max_stops,) * num_patches
+        grid = np.zeros(grid_shape)
+        for combo, rate in results.items():
+            grid[combo] = rate
+        
         return {
-            'optimal_stops': best_time,
+            'optimal_stops': best_combo,
             'max_reward_rate': max_reward_rate,
             'reward_rate_grid': grid
         }
@@ -87,7 +116,27 @@ class PatchForager:
             consec_failures = 0
             
             while True:
-                prob_reward = self.depletion_func(patch_id, rewards_in_patch)
+                
+                # Check exit condition based on strategy
+                if strategy == 'stops':
+                    if t_in_patch >= strategy_params['target_stops'][patch_id]:
+                        break
+                if strategy == 'rate':
+                    current_rate = patch_reward / (t_in_patch)
+                    # print(current_rate)
+                    if current_rate <= strategy_params['target_reward_rate']:     
+                        break
+                elif strategy == 'rewards':
+                    if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
+                        break
+                elif strategy == 'consec_failures':
+                    if consec_failures >= strategy_params['consec_failures']:
+                        break
+                elif strategy == 'failures':
+                    if failures_in_patch > strategy_params['max_failures']:
+                        break
+
+                prob_reward = self.depletion_func(patch_id, t_in_patch)
                 if self.prob:
                     reward = self.gen_bern(prob_reward) * self.reward_value[patch_id]
                 else:
