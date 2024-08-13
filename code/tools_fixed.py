@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from itertools import product
 
 class PatchForager:
-    def __init__(self, travel_time, reward_value, a, b, c, d, prob=False, depl_fxn = 'exp', indep_var = 'rewards'):
+    def __init__(self, travel_time, reward_value, a, b, c, d, prob=False, depl_fxn = 'fixed', indep_var = 'rewards'):
         self.travel_time = travel_time #travel_time (int): Time required to travel between patches.
         self.reward_value = reward_value #reward_value (array): value for each patch
         self.depl_fxn = depl_fxn
@@ -49,40 +49,6 @@ class PatchForager:
     def gen_bern(self, p):
         return 1 if random.random() < p else 0
         
-    # def calc_total_reward_rate(self, patch_list, max_time): #try removing - don't think this is used now.
-    #     """
-    #     Calculate the total reward rate for a discrete-time foraging system.
-    
-    #     Args:
-    #         patch_list (int): List of patch types.
-    #         max_time (list): Maximum time to forage in a patch.
-            
-    #     Returns:
-    #         float: Total reward rate for the entire environment.
-    #     """
-        
-    #     total_reward = 0
-    #     total_time = 0
-    
-    #     for patch_id in patch_list:
-    #         patch_reward = 0
-    #         patch_time = max_time[patch_id]
-    
-    #         for t in range(patch_time):
-    #             prob_reward = self.depletion_func(patch_id, t)
-                
-    #             if self.prob:
-    #                 instantaneous_rate =  self.gen_bern(prob_reward) * self.reward_value[patch_id]
-    #             else:
-    #                 instantaneous_rate =  prob_reward * self.reward_value[patch_id]
-    #             patch_reward += instantaneous_rate
-    
-    #         total_reward += patch_reward
-    #         total_time += max_time[patch_id] + self.travel_time
-    
-    #     total_reward_rate = total_reward / total_time
-    #     return total_reward_rate
-
     def calculate_optimal_stops(self, patch_list, max_stops=20):
         # Get the number of unique patches
         num_patches = len(set(patch_list))
@@ -133,7 +99,10 @@ class PatchForager:
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
                 if strategy == 'rate':
-                    current_rate = patch_reward / (t_in_patch)
+                    if t_in_patch==0:
+                        current_rate = 0
+                    else:
+                        current_rate = patch_reward / (t_in_patch)
                     if current_rate <= strategy_params['target_reward_rate']:     
                         break
                 elif strategy == 'rewards':
