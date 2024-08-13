@@ -117,24 +117,24 @@ class PatchForager:
             
             while True:
                 
-                # Check exit condition based on strategy
-                if strategy == 'stops':
-                    if t_in_patch >= strategy_params['target_stops'][patch_id]:
-                        break
-                if strategy == 'rate':
-                    current_rate = patch_reward / (t_in_patch)
-                    # print(current_rate)
-                    if current_rate <= strategy_params['target_reward_rate']:     
-                        break
-                elif strategy == 'rewards':
-                    if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
-                        break
-                elif strategy == 'consec_failures':
-                    if consec_failures >= strategy_params['consec_failures']:
-                        break
-                elif strategy == 'failures':
-                    if failures_in_patch > strategy_params['max_failures']:
-                        break
+                # # Check exit condition based on strategy
+                # if strategy == 'stops':
+                #     if t_in_patch >= strategy_params['target_stops'][patch_id]:
+                #         break
+                # if strategy == 'rate':
+                #     current_rate = patch_reward / (t_in_patch)
+                #     # print(current_rate)
+                #     if current_rate <= strategy_params['target_reward_rate']:     
+                #         break
+                # elif strategy == 'rewards':
+                #     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
+                #         break
+                # elif strategy == 'consec_failures':
+                #     if consec_failures >= strategy_params['consec_failures']:
+                #         break
+                # elif strategy == 'failures':
+                #     if failures_in_patch > strategy_params['max_failures']:
+                #         break
 
                 prob_reward = self.depletion_func(patch_id, t_in_patch)
                 if self.prob:
@@ -234,7 +234,7 @@ class PatchForager:
         
         plt.xlabel('# Rewards')
         plt.ylabel('Probability of Reward')
-        plt.legend(loc='center right', bbox_to_anchor=(1, 1.15))
+        plt.legend(['Patch 1', 'Patch 2'], loc='center right', bbox_to_anchor=(1, 1.15))
         ax.spines[['right', 'top']].set_visible(False)
         plt.savefig(f'figs/mvt_curves'+str(self.travel_time)+'.png', bbox_inches='tight', dpi=300)
         plt.show()
