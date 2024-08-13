@@ -98,13 +98,13 @@ class PatchForager:
                 if strategy == 'stops':
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
-                if strategy == 'rate':
-                    if t_in_patch==0:
-                        current_rate = 0
-                    else:
-                        current_rate = patch_reward / (t_in_patch)
-                    if current_rate <= strategy_params['target_reward_rate']:     
-                        break
+                # elif strategy == 'rate':
+                #     if t_in_patch==0:
+                #         current_rate = 0
+                #     else:
+                #         current_rate = patch_reward / (t_in_patch)
+                #     if current_rate <= strategy_params['target_reward_rate']:     
+                #         break
                 elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
@@ -151,6 +151,7 @@ class PatchForager:
                         break
                 if strategy == 'rate':
                     current_rate = patch_reward / (t_in_patch)
+                    # print(current_rate)
                     if current_rate <= strategy_params['target_reward_rate']:     
                         break
                 elif strategy == 'rewards':
