@@ -100,14 +100,13 @@ class PatchForager:
                     if strategy_patch == 'target_stops':
                         if t_in_patch >= strategy_params['target_patches'][patch_id]['target_stops']:
                             break
-                    elif strategy_patch == 'target_reward_rate':
-                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_reward_rate']:
-                            break
                     elif strategy_patch == 'target_rewards':
-                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_rewards']:
+                        if rewards_in_patch >= strategy_params['target_patches'][patch_id]['target_rewards']:
+                            break
+                        if t_in_patch >150:
                             break
                     elif strategy_patch == 'consec_failures':
-                        if t_in_patch >= strategy_params['target_patches'][patch_id]['consec_failures']:
+                        if consec_failures >= strategy_params['target_patches'][patch_id]['consec_failures']:
                             break
                 
                 if strategy == 'stops':
@@ -122,6 +121,8 @@ class PatchForager:
                 #         break
                 elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
+                        break
+                    if t_in_patch >150:
                         break
                 elif strategy == 'consec_failures':
                     if consec_failures >= strategy_params['consec_failures'][patch_id]:
@@ -172,6 +173,8 @@ class PatchForager:
                 elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
+                    if t_in_patch >150:
+                        break
                 elif strategy == 'consec_failures':
                     if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
@@ -184,14 +187,17 @@ class PatchForager:
                     if strategy_patch == 'target_stops':
                         if t_in_patch >= strategy_params['target_patches'][patch_id]['target_stops']:
                             break
-                    elif strategy_patch == 'target_reward_rate':
-                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_reward_rate']:
+                    elif strategy_patch == 'rate':
+                        current_rate = patch_reward / (t_in_patch)
+                        if current_rate >= strategy_params['target_patches'][patch_id]['target_reward_rate']:
                             break
                     elif strategy_patch == 'target_rewards':
-                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_rewards']:
+                        if rewards_in_patch >= strategy_params['target_patches'][patch_id]['target_rewards']:
+                            break
+                        if t_in_patch >150:
                             break
                     elif strategy_patch == 'consec_failures':
-                        if t_in_patch >= strategy_params['target_patches'][patch_id]['consec_failures']:
+                        if consec_failures >= strategy_params['target_patches'][patch_id]['consec_failures']:
                             break
             
             # Add travel time
