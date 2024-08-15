@@ -93,8 +93,23 @@ class PatchForager:
             consec_failures = 0
             
             while True:
-                
+
                 # Check exit condition based on strategy
+                if strategy == 'patch_type':
+                    strategy_patch = list(strategy_params['target_patches'][patch_id].keys())[0]
+                    if strategy_patch == 'target_stops':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_stops']:
+                            break
+                    elif strategy_patch == 'target_reward_rate':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_reward_rate']:
+                            break
+                    elif strategy_patch == 'target_rewards':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_rewards']:
+                            break
+                    elif strategy_patch == 'consec_failures':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['consec_failures']:
+                            break
+                
                 if strategy == 'stops':
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
@@ -112,7 +127,7 @@ class PatchForager:
                     if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
                 elif strategy == 'failures':
-                    if failures_in_patch > strategy_params['max_failures'][patch_id]:
+                    if failures_in_patch >= strategy_params['max_failures'][patch_id]:
                         break
 
                 prob_reward = self.depletion_func(patch_id, t_in_patch, rewards_in_patch)
@@ -161,8 +176,23 @@ class PatchForager:
                     if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
                 elif strategy == 'failures':
-                    if failures_in_patch > strategy_params['max_failures'][patch_id]:
+                    if failures_in_patch >= strategy_params['max_failures'][patch_id]:
                         break
+                    
+                elif strategy == 'patch_type':
+                    strategy_patch = list(strategy_params['target_patches'][patch_id].keys())[0]
+                    if strategy_patch == 'target_stops':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_stops']:
+                            break
+                    elif strategy_patch == 'target_reward_rate':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_reward_rate']:
+                            break
+                    elif strategy_patch == 'target_rewards':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['target_rewards']:
+                            break
+                    elif strategy_patch == 'consec_failures':
+                        if t_in_patch >= strategy_params['target_patches'][patch_id]['consec_failures']:
+                            break
             
             # Add travel time
             total_time += self.travel_time
