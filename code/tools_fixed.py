@@ -55,7 +55,7 @@ class PatchForager:
         
         # Create a list of all possible combinations of stops
         stop_combinations = list(product(range(max_stops), repeat=num_patches))
-        
+
         # Initialize the results dictionary
         results = {combo: 0 for combo in stop_combinations}
         
@@ -109,10 +109,10 @@ class PatchForager:
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
                 elif strategy == 'consec_failures':
-                    if consec_failures >= strategy_params['consec_failures']:
+                    if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
                 elif strategy == 'failures':
-                    if failures_in_patch > strategy_params['max_failures']:
+                    if failures_in_patch > strategy_params['max_failures'][patch_id]:
                         break
 
                 prob_reward = self.depletion_func(patch_id, t_in_patch, rewards_in_patch)
@@ -158,10 +158,10 @@ class PatchForager:
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
                 elif strategy == 'consec_failures':
-                    if consec_failures >= strategy_params['consec_failures']:
+                    if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
                 elif strategy == 'failures':
-                    if failures_in_patch > strategy_params['max_failures']:
+                    if failures_in_patch > strategy_params['max_failures'][patch_id]:
                         break
             
             # Add travel time
