@@ -20,7 +20,7 @@ class PatchForager:
             self.b = b #index of reward start
             self.c = c #index of reward end
         else:
-            raise('depl_fxn not defined')
+            raise("depl_fxn not defined")
         self.prob = prob #prob (boolean): whether rewards are delivered probabilistically
         self.indep_var = indep_var
 
@@ -31,7 +31,10 @@ class PatchForager:
         elif self.indep_var == 'rewards':
             t = rewards 
         else:
-            raise Exception('Independent variable not specified.')
+            if self.indep_var[patch_id] == 'rewards':
+                t = rewards
+            elif self.indep_var[patch_id] == 'stops':
+                t = stops
         
         if self.depl_fxn == 'exp': 
             rate = self.a[patch_id] * (self.b[patch_id] ** (-self.c[patch_id]*t)+self.d[patch_id])
@@ -108,6 +111,9 @@ class PatchForager:
                     elif strategy_patch == 'consec_failures':
                         if consec_failures >= strategy_params['target_patches'][patch_id]['consec_failures']:
                             break
+                    elif strategy_patch == 'max_failures':
+                        if failures_in_patch >= strategy_params['target_patches'][patch_id]['max_failures']:
+                            break
                 
                 if strategy == 'stops':
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
@@ -127,7 +133,7 @@ class PatchForager:
                 elif strategy == 'consec_failures':
                     if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
-                elif strategy == 'failures':
+                elif strategy == 'max_failures':
                     if failures_in_patch >= strategy_params['max_failures'][patch_id]:
                         break
 
@@ -198,6 +204,9 @@ class PatchForager:
                             break
                     elif strategy_patch == 'consec_failures':
                         if consec_failures >= strategy_params['target_patches'][patch_id]['consec_failures']:
+                            break
+                    elif strategy_patch == 'max_failures':
+                        if failures_in_patch >= strategy_params['target_patches'][patch_id]['max_failures']:
                             break
             
             # Add travel time
