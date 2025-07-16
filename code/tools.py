@@ -116,25 +116,6 @@ class PatchForager:
             consec_failures = 0
             
             while True:
-                
-                # # Check exit condition based on strategy
-                # if strategy == 'stops':
-                #     if t_in_patch >= strategy_params['target_stops'][patch_id]:
-                #         break
-                # if strategy == 'rate':
-                #     current_rate = patch_reward / (t_in_patch)
-                #     # print(current_rate)
-                #     if current_rate <= strategy_params['target_reward_rate']:     
-                #         break
-                # elif strategy == 'rewards':
-                #     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
-                #         break
-                # elif strategy == 'consec_failures':
-                #     if consec_failures >= strategy_params['consec_failures']:
-                #         break
-                # elif strategy == 'failures':
-                #     if failures_in_patch > strategy_params['max_failures']:
-                #         break
 
                 prob_reward = self.depletion_func(patch_id, t_in_patch)
                 if self.prob:
@@ -217,13 +198,14 @@ class PatchForager:
         ax = plt.subplot(111)
 
         # Generate a color map with unique colors for each patch
-        color_map = plt.get_cmap('tab20')  # You can choose a different colormap if needed
+        color_map = plt.get_cmap('tab20')
+        color_dict = {patch: color_map(i/len(patch_list)) for i, patch in enumerate(patch_list)}
         colors = color_map(np.linspace(0, 1, len(patch_list)))
 
         for patch_id in patch_list: 
 
             # Get the color for this patch
-            color = colors[patch_id]
+            color = color_dict[patch_id]
             
             # Compute the depletion rate for each time step
             p_R = [self.depletion_func(patch_id,t) for t in time_steps]
