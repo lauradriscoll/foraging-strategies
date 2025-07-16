@@ -25,7 +25,6 @@ class PatchForager:
         self.indep_var = indep_var
 
     def depletion_func(self, patch_id, stops, rewards):
-
         if self.indep_var == 'stops':
             t = stops
         elif self.indep_var == 'rewards':
@@ -64,7 +63,7 @@ class PatchForager:
         
         # Calculate reward rate for each combination
         for combo in stop_combinations:
-            _, total_reward_rate = self.run_simulation('stops', patch_list, target_stops=list(combo))
+            _, total_reward_rate = self.run_simulation('rewards', patch_list, target_rewards=list(combo))
             results[combo] = total_reward_rate
         
         # Find the best combination
@@ -96,7 +95,6 @@ class PatchForager:
             consec_failures = 0
             
             while True:
-
                 # Check exit condition based on strategy
                 if strategy == 'patch_type':
                     strategy_patch = list(strategy_params['target_patches'][patch_id].keys())[0]
@@ -118,13 +116,14 @@ class PatchForager:
                 if strategy == 'stops':
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
-                # elif strategy == 'rate':
-                #     if t_in_patch==0:
-                #         current_rate = 0
-                #     else:
-                #         current_rate = patch_reward / (t_in_patch)
-                #     if current_rate <= strategy_params['target_reward_rate']:     
-                #         break
+                elif strategy == 'rate':
+                    if t_in_patch==0:
+                        current_rate = 0
+                    else:
+                        current_rate = patch_reward / t_in_patch
+                        if current_rate <= strategy_params['target_reward_rate'][patch_id]:
+                            # print(current_rate, t_in_patch)     
+                            break
                 elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
@@ -172,9 +171,9 @@ class PatchForager:
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
                 if strategy == 'rate':
-                    current_rate = patch_reward / (t_in_patch)
-                    # print(current_rate)
-                    if current_rate <= strategy_params['target_reward_rate']:     
+                    current_rate = patch_reward / t_in_patch
+                    if current_rate <= strategy_params['target_reward_rate'][patch_id]:     
+                        # print(current_rate, t_in_patch)     
                         break
                 elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
@@ -250,7 +249,7 @@ class PatchForager:
             color = colors[patch_id]
             
             # Compute the depletion rate for each time step
-            p_R = [self.depletion_func(patch_id,t) for t in time_steps]
+            p_R = [self.depletion_func(patch_id,t, self.indep_var) for t in time_steps]
         
             plt.plot(time_steps+1, p_R,color=color)#label = str(p_R[best_time[patch_id]-1]), 
             # plt.plot(best_time[patch_id], p_R[best_time[patch_id]-1],'o', color=color,
@@ -260,7 +259,7 @@ class PatchForager:
         plt.ylabel('Probability of Reward')
         plt.legend(loc='center right', bbox_to_anchor=(1, 1.15))
         ax.spines[['right', 'top']].set_visible(False)
-        plt.savefig(f'figs/mvt_curves'+str(self.travel_time)+'.png', bbox_inches='tight', dpi=300)
+        # plt.savefig(f'figs/mvt_curves'+str(self.travel_time)+'.png', bbox_inches='tight', dpi=300)
         plt.show()
 
 def moving_window_avg(data, window_size):
