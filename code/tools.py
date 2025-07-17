@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from itertools import product
 
 class PatchForager:
-    def __init__(self, travel_time, reward_value, a, b, c, d, prob=False, depl_fxn = 'exp'):
+    def __init__(self, travel_time, reward_value, a, b, c, d, prob=False, depl_fxn = 'exp', indep_var = 'rewards'):
         self.travel_time = travel_time #travel_time (int): Time required to travel between patches.
         self.reward_value = reward_value #reward_value (array): value for each patch
         self.depl_fxn = depl_fxn
@@ -16,22 +16,35 @@ class PatchForager:
             self.c = c
             self.d = d
         elif self.depl_fxn=='fixed':
-            self.a = a
-            self.b = b
+            self.a = a #depletion fxn for a fixed number of rewards
+            self.b = b #index of reward start
+            self.c = c #index of reward end
         else:
-            raise('depl_fxn not defined')
+            raise("depl_fxn not defined")
         self.prob = prob #prob (boolean): whether rewards are delivered probabilistically
+        self.indep_var = indep_var
 
-    def depletion_func(self, patch_id, t):
+    def depletion_func(self, patch_id, stops, rewards):
+        if self.indep_var == 'stops':
+            t = stops
+        elif self.indep_var == 'rewards':
+            t = rewards 
+        else:
+            if self.indep_var[patch_id] == 'rewards':
+                t = rewards
+            elif self.indep_var[patch_id] == 'stops':
+                t = stops
         
         if self.depl_fxn == 'exp': 
             rate = self.a[patch_id] * (self.b[patch_id] ** (-self.c[patch_id]*t)+self.d[patch_id])
             
         elif self.depl_fxn == 'fixed':
-            if t >= self.b:
+            if stops < self.b[patch_id]: #This should always be based on stops or else you'd never get reward.
+                rate = 0
+            elif t > self.c[patch_id]: #This can be based on stops or rewards
                 rate = 0
             else:
-                rate = self.a[patch_id,t]
+                rate = self.a[patch_id,t] #This can be based on stops or rewards
                 
         return rate
 
@@ -72,7 +85,7 @@ class PatchForager:
         total_reward_rate = total_reward / total_time
         return total_reward_rate
 
-    def calculate_optimal_stops(self, patch_list, max_stops=20):
+    def calculate_optimal(self, patch_list, max_stops=20, indep_var = 'rewards'):
         # Get the number of unique patches
         num_patches = len(set(patch_list))
         
@@ -84,7 +97,7 @@ class PatchForager:
         
         # Calculate reward rate for each combination
         for combo in stop_combinations:
-            _, total_reward_rate = self.run_simulation('stops', patch_list, target_stops=list(combo))
+            _, total_reward_rate = self.run_simulation(indep_var, patch_list, target_rewards=list(combo))
             results[combo] = total_reward_rate
         
         # Find the best combination
@@ -98,7 +111,7 @@ class PatchForager:
             grid[combo] = rate
         
         return {
-            'optimal_stops': best_combo,
+            'optimal': best_combo,
             'max_reward_rate': max_reward_rate,
             'reward_rate_grid': grid
         }
@@ -114,10 +127,19 @@ class PatchForager:
             rewards_in_patch = 0 #instances
             failures_in_patch = 0 #instances
             consec_failures = 0
+            ddm_state = np.nan  # Initialize for all strategies
+
+            # Initialize DDM state if using DDM strategy
+            if strategy == 'ddm':
+                ddm_state = strategy_params.get('initial_state', 0.0)
+                threshold = strategy_params.get('threshold', 1.0)
+                drift_rate = strategy_params.get('drift_rate', .29)  # drift toward leaving
+                reward_push = strategy_params.get('reward_push', -.17)  # how much reward pushes relative to threshold
+                noise_std = strategy_params.get('noise_std', 0)  # optional noise
             
             while True:
 
-                prob_reward = self.depletion_func(patch_id, t_in_patch)
+                prob_reward = self.depletion_func(patch_id, t_in_patch, rewards_in_patch)
                 if self.prob:
                     reward = self.gen_bern(prob_reward) * self.reward_value[patch_id]
                 else:
@@ -133,6 +155,19 @@ class PatchForager:
                 else:
                     failures_in_patch += 1
                     consec_failures += 1
+
+                # Update DDM state if using DDM strategy
+                if strategy == 'ddm':
+                    # Drift toward leaving threshold
+                    ddm_state += drift_rate
+                    
+                    # Movement relative to threshold when reward is obtained
+                    if reward > 0:
+                        ddm_state += reward_push
+                    
+                    # Optional: add noise
+                    if noise_std > 0:
+                        ddm_state += np.random.normal(0, noise_std)
                 
                 data.append({
                     'time': total_time,
@@ -144,7 +179,8 @@ class PatchForager:
                     'rewards_in_patch': rewards_in_patch,
                     'failures_in_patch': failures_in_patch,
                     'consecutive_failures': consec_failures,
-                    'patch_entry_time': patch_entry_time
+                    'patch_entry_time': patch_entry_time,
+                    'ddm_state': ddm_state
                 })
     
                 # Check exit condition based on strategy
@@ -154,16 +190,21 @@ class PatchForager:
                 if strategy == 'rate':
                     current_rate = patch_reward / (t_in_patch)
                     # print(current_rate)
-                    if current_rate <= strategy_params['target_reward_rate']:     
+                    if current_rate <= strategy_params['target_reward_rate'][patch_id]:     
                         break
                 elif strategy == 'rewards':
                     if rewards_in_patch >= strategy_params['target_rewards'][patch_id]:
                         break
                 elif strategy == 'consec_failures':
-                    if consec_failures >= strategy_params['consec_failures']:
+                    if consec_failures >= strategy_params['consec_failures'][patch_id]:
                         break
                 elif strategy == 'failures':
-                    if failures_in_patch > strategy_params['max_failures']:
+                    if failures_in_patch > strategy_params['max_failures'][patch_id]:
+                        break
+                elif strategy == 'ddm':
+                    if ddm_state >= threshold:
+                        break
+                if strategy_params.get('max_time_per_patch') and t_in_patch >= strategy_params['max_time_per_patch']:
                         break
             
             # Add travel time
@@ -178,7 +219,8 @@ class PatchForager:
                 'rewards_in_patch': 0,
                 'failures_in_patch': 0,
                 'consecutive_failures': 0,
-                'patch_entry_time': None
+                'patch_entry_time': np.nan,
+                'ddm_state': np.nan
             })
             
             patch_entry_time = total_time
@@ -194,31 +236,42 @@ class PatchForager:
         time_steps = np.arange(max_stops)
         
         # Plot the depletion rate over time
-        plt.figure(figsize=(2, 2))
+        plt.figure(figsize=(3, 3))
         ax = plt.subplot(111)
 
-        # Generate a color map with unique colors for each patch
-        color_map = plt.get_cmap('tab20')
-        color_dict = {patch: color_map(i/len(patch_list)) for i, patch in enumerate(patch_list)}
-        colors = color_map(np.linspace(0, 1, len(patch_list)))
-
-        for patch_id in patch_list: 
-
-            # Get the color for this patch
-            color = color_dict[patch_id]
+        # Get unique patches only
+        unique_patches = list(set(patch_list))
+        color_map = plt.get_cmap('tab10')
+        
+        for i, patch_id in enumerate(unique_patches): 
+            color = color_map(i)
             
             # Compute the depletion rate for each time step
-            p_R = [self.depletion_func(patch_id,t) for t in time_steps]
+            p_R = []
+            for t in time_steps:
+                try:
+                    # Fix: pass stops and rewards correctly
+                    prob = self.depletion_func(patch_id, t, t)  # assuming stops=rewards=t
+                    p_R.append(prob)
+                except:
+                    p_R.append(0)
         
-            plt.plot(time_steps+1, p_R,color=color)#label = str(p_R[best_time[patch_id]-1]), 
-            # plt.plot(best_time[patch_id], p_R[best_time[patch_id]-1],'o', color=color,
-            #  label=f'Patch {patch_id}: {best_time[patch_id]} rewards')
+            plt.plot(time_steps, p_R, color=color, label=f'Patch {patch_id}', linewidth=2)
+            
+            # Mark optimal point if provided
+            if best_time and patch_id < len(best_time):
+                opt_point = best_time[patch_id]
+                if opt_point < len(p_R):
+                    plt.plot(opt_point, p_R[opt_point], 'o', color=color, 
+                            markersize=8, markerfacecolor='white', markeredgewidth=2)
         
-        plt.xlabel('# Rewards')
+        plt.xlabel(f'# {self.indep_var.title()}')
         plt.ylabel('Probability of Reward')
-        plt.legend(['Patch 1', 'Patch 2'], loc='center right', bbox_to_anchor=(1, 1.15))
+        plt.title('Patch Depletion Curves')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
         ax.spines[['right', 'top']].set_visible(False)
-        plt.savefig(f'figs/mvt_curves'+str(self.travel_time)+'.png', bbox_inches='tight', dpi=300)
+        plt.tight_layout()
         plt.show()
 
 def moving_window_avg(data, window_size):
