@@ -119,7 +119,6 @@ class PatchForager:
     def run_simulation(self, strategy, patch_list, **strategy_params):
         data = []
         total_time = 0
-        patch_entry_time = 0
         
         for patch_id in patch_list:
             t_in_patch = 0
@@ -133,11 +132,12 @@ class PatchForager:
             if strategy == 'ddm':
                 ddm_state = strategy_params.get('initial_state', 0.0)
                 threshold = strategy_params.get('threshold', 1.0)
-                drift_rate = strategy_params.get('drift_rate', .29)  # drift toward leaving
-                reward_push = strategy_params.get('reward_push', -.17)  # how much reward pushes relative to threshold
+                drift_rate = strategy_params.get('drift_rate', 1)  # drift toward leaving
+                reward_push = strategy_params.get('reward_push', -1)  # how much reward pushes relative to threshold
                 noise_std = strategy_params.get('noise_std', 0)  # optional noise
             
             while True:
+                patch_entry_time = total_time
 
                 prob_reward = self.depletion_func(patch_id, t_in_patch, rewards_in_patch)
                 if self.prob:
@@ -187,7 +187,7 @@ class PatchForager:
                 if strategy == 'stops':
                     if t_in_patch >= strategy_params['target_stops'][patch_id]:
                         break
-                if strategy == 'rate':
+                elif strategy == 'rate':
                     current_rate = patch_reward / (t_in_patch)
                     # print(current_rate)
                     if current_rate <= strategy_params['target_reward_rate'][patch_id]:     
@@ -222,8 +222,6 @@ class PatchForager:
                 'patch_entry_time': np.nan,
                 'ddm_state': np.nan
             })
-            
-            patch_entry_time = total_time
 
         # Convert data to a DataFrame
         data_df = pd.DataFrame(data)
