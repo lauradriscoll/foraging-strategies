@@ -134,6 +134,7 @@ class PatchForager:
                 threshold = strategy_params.get('threshold', 1.0)
                 drift_rate = strategy_params.get('drift_rate', 1)  # drift toward leaving
                 reward_push = strategy_params.get('reward_push', -1)  # how much reward pushes relative to threshold
+                rpe_scale = strategy_params.get('rpe_scale', 3)  # how much rpe scales reward push
                 noise_std = strategy_params.get('noise_std', 0)  # optional noise
             
             while True:
@@ -158,13 +159,17 @@ class PatchForager:
 
                 # Update DDM state if using DDM strategy
                 if strategy == 'ddm':
+
+                    rpe = reward - (prob_reward * self.reward_value[patch_id])
+                    ddm_state += rpe * rpe_scale
+
                     # Drift toward leaving threshold
                     ddm_state += drift_rate
-                    
+
                     # Movement relative to threshold when reward is obtained
                     if reward > 0:
                         ddm_state += reward_push
-                    
+
                     # Optional: add noise
                     if noise_std > 0:
                         ddm_state += np.random.normal(0, noise_std)
